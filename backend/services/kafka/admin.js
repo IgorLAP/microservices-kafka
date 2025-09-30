@@ -8,11 +8,17 @@ const kafka = new Kafka({
 
 const admin = kafka.admin();
 
+// If not set in the kafka-ui you can create your topics programmatically like this
 const runTopicCreation = async () => {
   await admin.connect();
   await admin.createTopics({
-    topics: [{ topic: "payment-sucessful" }, { topic: "order-successful" }],
+    topics: [
+      { topic: "payment-sucessful" },
+      { topic: "order-successful" },
+      { topic: "email-successful" },
+      { topic: "order-sucessful" },
+    ],
   });
 };
 
-runTopicCreation();
+// runTopicCreation();

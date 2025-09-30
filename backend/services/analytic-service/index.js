@@ -3,7 +3,7 @@ import { Kafka } from "kafkajs";
 const kafka = new Kafka({
   clientId: "analytic-service",
   // as set in the dockerfile
-  brokers: ["localhost:9094"],
+  brokers: ["localhost:9094", "localhost:9095", "localhost:9096"],
 });
 
 const consumer = kafka.consumer({ groupId: "analytic-service" });
@@ -12,21 +12,47 @@ const runConsumer = async () => {
   try {
     await consumer.connect();
     await consumer.subscribe({
-      topic: "payment-successful",
-      // se a conexãom for perdida, ainda vai dar fetch nas mensagens do kafka
+      topics: ["payment-successful", "order-successful", "email-successful"],
+      // se a conexão for perdida, ainda vai dar fetch nas mensagens do kafka
       fromBeginning: true,
     });
 
     await consumer.run({
       eachMessage: async ({ topic, partition, message }) => {
-        const value = message.value.toString();
-        const { userId, cart } = JSON.parse(value);
+        switch (topic) {
+          case "payment-successful":
+            {
+              const value = message.value.toString();
+              const { userId, cart } = JSON.parse(value);
 
-        const total = cart
-          .reduce((acc, item) => acc + item.price, 0)
-          .toFixed(2);
+              const total = cart
+                .reduce((acc, item) => acc + item.price, 0)
+                .toFixed(2);
 
-        console.log(`Analytic consumer: User ${userId} paid ${total}`);
+              console.log(`Analytic consumer: User ${userId} paid ${total}`);
+            }
+            break;
+          case "order-successful":
+            {
+              const value = message.value.toString();
+              const { orderId, userId } = JSON.parse(value);
+
+              console.log(
+                `Analytic consumer: Order id: ${orderId} created for user id: ${userId}`
+              );
+            }
+            break;
+          case "email-successful":
+            {
+              const value = message.value.toString();
+              const { userId, emailId } = JSON.parse(value);
+
+              console.log(
+                `Analytic consumer: Email id: ${emailId} sent to user id: ${userId}`
+              );
+            }
+            break;
+        }
       },
     });
   } catch (err) {
